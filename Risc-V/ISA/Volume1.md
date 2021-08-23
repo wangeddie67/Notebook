@@ -147,3 +147,51 @@ $\triangle$ 陷阱的作用：
 ## 1.7 未指明的行为
 
 $\triangle$ 未指明的行为：没有约束的行为或值。对于扩展集、平台标准和实现开放。
+
+
+
+## 2 RV32I基础整形指令集
+
+版本2.1
+
+$\triangle$ RV32I包含40条指令。
+
+- 其中ECALL/EBREAK可以用SYSTEM指令实现，FENCE可以用NOP实现。
+
+## 2.1 基础整形ISA的编程环境
+
+$\triangle$ 编程环境：
+
+- 32个x寄存器，每个32比特。
+  - x0固定为全0，x1-x31为通用寄存器。
+  - XLEN=32。
+- pc维护指令指针。
+
+$\triangle$ 没有专门的栈针寄存器和返回寄存器，可以利用任意寄存器。
+
+$\triangle$​​ **疑问**：Although 16 registers would arguably be sufficient for an integer ISA running compiled code, it is impossible to encode a complete ISA with 16 registers in 16-bit instructions using a 3-address format. Although a 2-address format would be possible, it would increase instruction count and lower efficiency.
+
+## 2.2 基础指令格式
+
+$\triangle$ 四种指令格式都是32比特长度，但是可以16比特对齐。
+
+$\triangle$ 四种指令格式：R/I/S/U
+
+- R格式：两源操作数格式rs2、rs1、rd，
+- I格式：单源操作数+12比特立即数格式rs1、imm、rd，
+- S格式：两源操作数+12比特立即数格式rs2、rs1、imm，
+- U格式：20比特立即数格式imm、rd。
+
+$\triangle$ 编码规则：
+
+- 操作数位置相同。
+- 除了CSR指令，立即数总是符号扩展。
+
+## 2.3 立即数编码变种
+
+$\triangle$ 除了上面四种指令格式，还有两种指令格式：B/J
+
+- B格式：两源操作数+12比特立即数格式rs1、rs2、imm。立即数编码乱序。
+- J格式：20比特立即数格式imm、rd。立即数编码乱序。
+
+$\triangle$ 立即数用来保存地址偏移，所以不需要保留最低位。
