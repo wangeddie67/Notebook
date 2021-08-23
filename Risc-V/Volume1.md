@@ -1,0 +1,149 @@
+# 简介
+
+$\triangle$ Our goals in RISC-V include:
+
+- A completely *open* ISA that is freely available to academic and industry.
+- A *real* ISA suitable for direct native hardware implementation, not just simulation or binary translation.
+- An ISA that avoids "over-architecting" for a particular microarchitecture style, but which allows efficient implementation in any of these.
+- An ISA seperated into a *small* base integer ISA, usable by itself as a base for customized accelerators or for eduacational purposes, and optional standard extensions, to support general purpose software development.
+- Support for the revised 2008 IEEE-754 floating-point standard.
+- An ISA supporting extensive ISA extensions and specialized variants.
+- Both 32-bit and 64-bit address space variants for applications, operating system kernels, and hardware implementations.
+- An ISA with support for highly-parallel multicore or manycore implementations, including heterogenous multiprocessors.
+- Optional *variable-length* instructions to both expand availabe instruction encoding space and to support an optional *dense instruction encoding* for improved performance, static code size, and energy efficiency.
+- A fully virtualizable ISA to easy hypervisor development.
+- An ISA that simplifies experiements with new privileged architecture designs.
+
+$\triangle$ The RISC-V ISA is defined avoiding implementation details as much as possibleand should be read as the software-visiable interface to a wide variety of implementations rather than as the design of a particular hardware artifact.
+
+## 1.1 RISC-V硬件平台术语
+
+$\triangle$ A component is termed as a *core* if it contains an independent instruction fetch unit.
+
+$\triangle$ A RISC-V-compatible core might support multiple RISC-V-compatible hardware threads, or *harts*, through multithreading.
+
+$\triangle$ We use the term *coprocessor* to refer to a unit that is attached to a RISC-V core and is mostly sequenced by a RISC-V instruction stream, but which contains additional architectural state and instruction-set extensions, and possibly some limited autonomy relative to the primary RISC-V instruction stream.  
+
+$\triangle$ We use the term *accelerator* to refer to either a non-programmable fixed-function unit or a core that can operate autonomously but is specialized for certain tasks.
+
+## 1.2 RISC-V软件执行环境和Hart
+
+$\triangle$​​ A RISC-V execution environment interface (EEI) defines:
+
+- the initial state of the program
+- the number and type of harts in the environment including the privilege modes supported by the harts,
+- the accessibility and attributes of memory and I/O regions,
+- the behavior of all legal instructions executed on each hart, and
+- the handling of any interrupts or exceptions raised during execution including environment calls.
+
+$\triangle$ From the perspective of software running in a given execution environment, a hart is a resource that autonomously fetches and executes RISC-V instructions within that execution environment.   
+
+## 1.3 RISC-V ISA简介
+
+$\triangle$ RISCV-ISA is actually a family of related ISAs:
+
+- RV32I and RV64I, two primary base integer variants (XLEN);
+- RV32E subset variant of the RV32I base instruction set, to support small microcontrollers, and which has half the number of integer registers (XLEN=64).
+- RV128I variant of the base integer instruction set supporting a flat 128-bit address space (XLEN=128).
+
+$\triangle$ We use the term XLEN to refer to the width of an integer register in bits (either 32 or 64).  
+
+$\triangle$ We divide each RISC-V instruction-set encoding space into three disjoint categories: *standard*, *reserved*, and *custom*.
+
+- Standard encoding are defined by the Foundation.
+- Reserved encoding are currently not defined but are saved for future standard extension.
+  - *non-standard*: an extension that is not defined by Foundation.
+- Custom encoding shall never be used for standard extensions and are made available for vendor-specific non-standard extension.
+  - *non-conforming*: non-standard extension that uses either a standard or a reserved encoding.
+
+$\triangle$ Extension:
+
+- "I": base integer ISA
+- "M": standard integer multiplication and division extension
+- "A": standard atomic instruction extension.
+- "F": standard single-precision floating-point extension.
+- "D": standard double-precision floating-point extension.
+- "C": instruction extension provides narrower 16-bit forms of common instructions.
+
+## 1.4 访存
+
+$\triangle$​​ RISC-V hart总共的内存空间为2^XLEN^字节，可以单比特寻址。
+
+$\triangle$​​ 访存宽度定义：
+
+- *halfword*：16比特（2字节），
+- *word*：32比特（4字节），
+- *doubleword*：64比特（8字节），
+- *quadword*：128比特（16字节）。
+
+$\triangle$​​​ 内存地址计算忽略溢出，而是模2^XLEN^。
+
+$\triangle$​​​ 读写I/O设置会引起副作用，访问主存不会。
+
+$\triangle$ 内存访问分为隐式访问（*implicit*）和显式方式（*explicit*）。
+
+- 隐式访问：指令取值。
+- 显式访问：load/store指令。
+
+$\triangle$ 执行环境定义：
+
+- 指令的其他隐式访问。
+- 内存空间分配。
+
+$\triangle$​ 指令访问不可访问的地址，触发异常。
+
+- 隐式读不引起异常，而且没有副作用。
+
+$\triangle$​ RISC-V的默认内存一致性模型为RISC-V Weak Memory Ordering (RVWMO)。提议替换为强模型Total Store Ordering。
+
+- 需要软件配合使用fence或者cache控制指令保证内存访问的顺序。
+
+## 1.5 基础指令长度编码
+
+$\triangle$​ 基础RISC-V ISA的指令编码为固定长度的32比特。
+
+$\triangle$ 标准编码机制支持不同长度指令的ISA扩展。
+
+$\triangle$ IALIGN（以字节为单位），指令地址对齐约束。
+
+$\triangle$ ILEN（以字节为单位），最大指令长度，总是IALIGN的倍数。
+
+### 扩展指令长度编码
+
+$\triangle$ RISC-V的标准编码是32比特，但是预留了其他编码的格式。编码为16比特对齐。
+
+$\triangle$ 以低地址的低位表示指令长度：
+
+- 16比特：[1:0]不等于11。
+- 32比特：[1:0]=11，[4:2]不等于111。
+- 48比特：[5:0]=011111。
+- 64比特：[6:0]=0111111。
+- 80比特：[14:12]不等与111，[6:0]=1111111。
+- 176比特：[14:12]=111，[6:0]=11111111。
+
+$\triangle$ 全0和全1都是非法编码。
+
+$\triangle$ 支持大端或小端。
+
+## 1.6 异常、陷阱和中断
+
+$\triangle$ *异常*：运行时出现的非常规条件。*中断*：外部异步时间，使得hard执行非常规的条件。
+
+- 与IEEE-754定义兼容。
+
+$\triangle$ 陷阱的作用：
+
+- 包含陷阱：软件可见的陷阱，由执行环境中的软件处理。
+- 请求陷阱：同步异常，向执行环境请求行为。例如：系统调用。
+- 不可见陷阱：陷阱处理对于软件是透明的，在trap处理后继续。
+- Fatal陷阱：表示fatal失效，执行环境中止。
+
+|              | 包含陷阱 | 请求陷阱 | 不可见陷阱 | Fatal陷阱 |
+| ------------ | -------- | -------- | ---------- | --------- |
+| 执行中止     | No       | No       | No         | Yes       |
+| 软件不可见   | No       | No       | Yes        | Yes       |
+| 执行环境处理 | No       | Yes      | Yes        | Yes       |
+
+## 1.7 未指明的行为
+
+$\triangle$ 未指明的行为：没有约束的行为或值。对于扩展集、平台标准和实现开放。
