@@ -150,7 +150,7 @@ $\triangle$ 未指明的行为：没有约束的行为或值。对于扩展集�
 
 
 
-## 2 RV32I基础整形指令集
+# 2 RV32I基础整形指令集
 
 版本2.1
 
@@ -195,3 +195,58 @@ $\triangle$ 除了上面四种指令格式，还有两种指令格式：B/J
 - J格式：20比特立即数格式imm、rd。立即数编码乱序。
 
 $\triangle$ 立即数用来保存地址偏移，所以不需要保留最低位。
+
+## 2.4 整数计算指令
+
+$\triangle$ 不提供专门的flag检查指令，而是在分支指令中完成。
+
+### 整数寄存器-立即数指令
+
+$\triangle$​ ADDI: adds the sign-extended 12-bit immediate to register *rs1*.
+
+$\triangle$​​ SLTI: places the value 1 in register *rd* if register *rs1* is less than the sign-extended immediate when both are treated as signed numbers, else 0 is written to *rd*.
+
+$\triangle$ SLTIU: is similar but compares the values are unsigned numbers.
+
+$\triangle$​ ANDI/ORI/XORI: are logical operations that perform bitwise AND, OR, and XOR on register *rs1* and the sign-extended 12-bit immediate and place the result in *rd*.
+
+$\triangle$ SLLI/SRLI/SRAI: Shifts by a constant. The operand to be shifted is in *rs1*, and the shift amount is encoded in the lower 5 bits of the I-immediate field.
+
+$\triangle$ LUI: is used to build 32-bit constants. LUI places the 32-bit U-immediate value into the destination register *rd*, filling in the lowest 12 bits with zeros.
+
+$\triangle$ AUIPC: is used to build pc-relative addresses. 
+
+### 整数寄存器-寄存器操作
+
+$\triangle$ ADD: performs the addition of *rs1* and *rs2*.
+
+$\triangle$ SUB: performs the subtraction of *rs2* form *rs1*. 忽略溢出。
+
+$\triangle$ SLT and SLTU: perform signed and unsigned compares respectively, write 1 to *rd* if *rs1 < rs2*, 0 otherwise.
+
+$\triangle$ AND/OR/XOR: perform bitwise logical operations.
+
+$\triangle$ SLL/SRL/SRA perform logical left, logical right, and arithmetic right shifts on the value in register *rs1* by the shift amount held in the lower 5 bits of register *rs2*.
+
+### NOP指令
+
+$\triangle$ NOP: does not change any architecturally visible state, except for advancing the pc and incrementing any applicable performance counters.
+
+$\triangle$ 复用`ADDI x0, x0, 0`编码。
+
+## 2.5 控制转移指令
+
+### 无条件跳转
+
+$\triangle$ JAL stores the address of the instruction following the jump (pc+4) into register *rd*.
+
+- 偏移是有符号的，跳转范围是$\pm$1MiB范围。
+
+$\triangle$​ JALR: target address is obtained by adding the sign-extended 12-bit I-immediate to the register *rs1*, then setting the least-significant bit of the result to zero.
+
+## 2.6 Load和Store指令
+
+
+
+
+
