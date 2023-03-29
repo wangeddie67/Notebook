@@ -1,3 +1,6 @@
 [submodule "top_down/pmu-tools"]
 	path = top_down/pmu-tools
 	url = https://github.com/andikleen/pmu-tools.git
+[submodule "top_down/perfmon"]
+	path = top_down/perfmon
+	url = https://github.com/intel/perfmon.git

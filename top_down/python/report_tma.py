@@ -5,6 +5,7 @@ Parse TMA configuration and generate report.
 import os
 import argparse
 import ast
+from typing import List
 
 import parse_tma
 from report_index import generate_index
@@ -150,6 +151,45 @@ def generate_report(tma_file: str,
 
     print(f"{tma_file} --> {report_file}")
 
+
+def generate_metric_report(tma_file_list: List[str],
+                            metric: str,
+                            report_file: str):
+    """
+    Generate reports of specified metric.
+    """
+    metrics_str_list = []
+
+    for tma_file in tma_file_list:
+        base_name = os.path.basename(tma_file)
+        module_ast = parse_tma.get_ast(file_path=tma_file)
+        metrics_dict = parse_tma.get_metrics_dict(module_ast=module_ast)
+        function_dict = parse_tma.get_function_dict(module_ast=module_ast)
+
+        if metric not in metrics_dict:
+            continue
+
+        metric_str = __print_metric(metrics_dict[metric],
+                                    metrics_dict=metrics_dict,
+                                    function_dict=function_dict)
+
+        metric_str_match = False
+        for idx, item in enumerate(metrics_str_list):
+            if item[1] == metric_str:
+                metrics_str_list[idx][0].append(base_name)
+                metric_str_match = True
+
+        if not metric_str_match:
+            metrics_str_list.append([[base_name], metric_str])
+
+    with open(report_file, "w", encoding="utf-8") as file_obj:
+        file_obj.write(f"# {metric}\n\n")
+        for cpu_list, metric_str in metrics_str_list:
+            cpu_list_title = ", ".join(cpu_list)
+            file_obj.write(f"## {cpu_list_title}\n\n")
+            file_obj.write(f"{metric_str}\n\n")
+
+
 def main():
     """
     Main function of command.
@@ -161,6 +201,8 @@ def main():
     cmdline.add_argument("--report_file", default="",
                          help="File path of TMA report.")
     cmdline.add_argument("--all", action="store_true")
+    cmdline.add_argument("--metric", default="",
+                         help="Report of one metrics.")
     args = cmdline.parse_args()
 
     if args.all:
@@ -222,7 +264,36 @@ def main():
                                       for cpu in v45],
                        report_file=root_folder + "/reports/index_v45.md")
 
-    else:
+    elif args.metric and args.report_file:
+        known_cpus = [
+            "snb_client_ratios",
+            "jkt_server_ratios",
+            "ivb_client_ratios",
+            "ivb_server_ratios",
+            "hsw_client_ratios",
+            "hsx_server_ratios",
+            #"slm_ratios",
+            "bdx_server_ratios",
+            "bdw_client_ratios",
+            "skl_client_ratios",
+            #"knl_ratios",
+            "skx_server_ratios",
+            "clx_server_ratios",
+            "icl_client_ratios",
+            "icx_server_ratios",
+            "adl_glc_ratios",
+            "adl_grt_ratios",
+            "spr_server_ratios",
+            "ehl_ratios"
+        ]
+        root_folder = os.path.dirname(os.path.dirname(__file__))
+        generate_metric_report(
+            tma_file_list=[root_folder + "/pmu-tools/" + cpu + ".py" \
+                                      for cpu in known_cpus],
+            metric=args.metric,
+            report_file=args.report_file)
+
+    elif args.tma_file and args.report_file:
         if not os.path.exists(args.tma_file):
             raise FileNotFoundError(args.tma_file)
         if not os.path.exists(os.path.dirname(args.report_file)):
@@ -230,6 +301,8 @@ def main():
 
         generate_report(tma_file=args.tma_file,
                         report_file=args.report_file)
+    else:
+        cmdline.print_help()
 
 if __name__ == "__main__":
     main()
